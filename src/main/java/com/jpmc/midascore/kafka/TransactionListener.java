@@ -2,6 +2,7 @@ package com.jpmc.midascore.kafka;
 
 import com.jpmc.midascore.entity.TransactionRecord;
 import com.jpmc.midascore.entity.UserRecord;
+import com.jpmc.midascore.foundation.Incentive;
 import com.jpmc.midascore.foundation.Transaction;
 import com.jpmc.midascore.repository.TransactionRepository;
 import com.jpmc.midascore.repository.UserRepository;
@@ -9,6 +10,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
 
@@ -16,6 +18,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TransactionListener {
 
+    private static final String INCENTIVE_URL =
+            "http://localhost:8080/incentive";
+
+    private final RestTemplate restTemplate;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
 
@@ -46,15 +52,26 @@ public class TransactionListener {
         //Check Balance
         if(sender.getBalance() < transaction.getAmount()) return ;
 
+        //Task 4 -->
+        Incentive incentive =
+                restTemplate.postForObject(
+                        INCENTIVE_URL,
+                        transaction,
+                        Incentive.class
+                );
+        
+        float incentiveAmount = incentive != null ? incentive.getAmount() : 0;
+
         //update balance
         sender.setBalance(sender.getBalance() - transaction.getAmount());
-        receiver.setBalance(receiver.getBalance() + transaction.getAmount());
+        receiver.setBalance(receiver.getBalance() + transaction.getAmount() + incentiveAmount);
 
         //Save Transactions
         TransactionRecord record = new TransactionRecord();
         record.setAmount(transaction.getAmount());
         record.setSender(sender);
         record.setRecipient(receiver);
+        record.setIncentive(incentiveAmount);
 
         transactionRepository.save(record);
         userRepository.save(sender);
@@ -65,6 +82,16 @@ public class TransactionListener {
 //        if (waldorf != null) {
 //            System.out.println("WALDORF_BALANCE=" + waldorf.getBalance());
 //        }
+
+
+//        Task 4 alternate method
+//        UserRecord wilbur = userRepository.findByName("wilbur");
+//        if (wilbur != null) {
+//            System.out.println(
+//                    "WILBUR_BALANCE = " + wilbur.getBalance()
+//            );
+//        }
+
 
 
     }

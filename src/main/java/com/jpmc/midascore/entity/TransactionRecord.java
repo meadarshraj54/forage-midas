@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
-
 @Entity
 @Getter
 @Setter
@@ -18,6 +16,7 @@ public class TransactionRecord {
     private Long id;
 
     private float amount;
+    private float incentive;
 
     @ManyToOne
     private UserRecord sender;
